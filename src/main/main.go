@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"encoding/xml"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,12 +33,7 @@ type MvnDeploy struct {
 
 
 
-const url = "http://172.19.9.94:10000/repository/maven-snapshots/"
-const urlR = "http://172.19.9.94:10000/repository/maven-releases/"
-const repoLocal = "/Users/mac/Desktop/resp"
-const repositoryId = "nexus-snapshots"
-const repositoryIdR = "nexus-releases"
-const settingConfigPath = "/Applications/apache-maven-3.3.9/conf/settings_sh_sunline.xml"
+
 
 
 type PomDoc struct {
@@ -57,35 +53,134 @@ type ParentDom struct {
 // 创建一个数组
 var war_file_arr, jar_file_arr,pom_file_arr = make([]string, 0), make([]string, 0),make([]string, 0)
 
+var   url ="http://172.19.9.94:10000/repository/maven-snapshots/"
+//var   urlR = "http://172.19.9.94:10000/repository/maven-releases/"
+var  repoLocal = "/Users/mac/Desktop/resp"
+var  repositoryId = "nexus-snapshots"
+//var  repositoryIdR = "nexus-releases"
+var  settingConfigPath = "/Applications/apache-maven-3.3.9/conf/xxx.xml"
+var targetDir = ""
+var pomVersion = ""
+
+var conf = "conf.properties"
+var second_cmd = ""
+
+
+func  init()  {
+	initProperties()
+	// 解析配置文件
+	parsing_conf()
+}
+
+/**
+解析配置文件
+ */
+func parsing_conf()  {
+	f, err := os.Open(conf)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer f.Close()
+
+	// 创建map
+	prop := make(map[string]string)
+
+	br :=bufio.NewReader(f)
+	for {
+		a, _, c := br.ReadLine()
+		if c == io.EOF {
+			break
+		}
+		line :=string(a)
+
+		line_arr :=strings.Split(line,"=")
+		prop[strings.Trim(line_arr[0]," ")]=strings.Trim(line_arr[1]," ")
+	}
+
+	// 给参数赋值
+	assignment(prop)
+
+
+}
+
+
+/**
+ 为全局变量赋值
+ */
+func assignment(prop map[string]string) {
+	log.Println(prop)
+	url=prop["url"]
+	repositoryId = prop["repositoryId"]
+	if  pomVersion=="releases" {
+		url=prop["urlR"]
+		repositoryId = prop["repositoryIdR"]
+	}
+
+	repoLocal = prop["repoLocal"]
+	settingConfigPath=prop["settingConfigPath"]
+	targetDir=prop["targetDir"]
+}
+
+
+/**
+	初始化配置文件
+ */
+func initProperties(){
+	if len(os.Args) <=1 {
+		log.Fatal("请输入子命令: pom|jar|war|version|help")
+	}
+
+	flag.StringVar(&conf,"c","127.0.0.1","请指定配置文件的地址")
+	flag.StringVar(&pomVersion,"v","snapshots","请输入包的版本")
+
+	flag.CommandLine.Parse(os.Args[2:])
+
+	second_cmd = os.Args[1]
+
+	log.Println("配置文件地址>>"+conf)
+}
+
+
+
 func main() {
 	//要遍历的文件夹
-	dir := `/Users/mac/Documents/项目/xxx/xxx/temp/pom/`
 
 	//遍历的文件夹
 	//参数：要遍历的文件夹，层级（默认：0）
-	findDir(dir, 0)
-	//println("==========war_file===========")
-	//for index, value := range war_file_arr {
-	//	println(index, "   ", value)
-	//	cmd := zipList(value, "war")
-	//	fmt.Println(cmd)
-	//	CmdExecutor(cmd)
-	//
-	//}
-	//
-	//
+	findDir(targetDir, 0)
+	if second_cmd == "jar" {
+		jarAction()
+	} else if second_cmd == "war" {
+		warAction()
+	} else if second_cmd == "pom" {
+		pomAction()
+	} else {
+		log.Fatalln("不能识别的文件类型")
+	}
+}
 
+func jarAction(){
+	println("==========jar_file===========")
+	for index, value := range jar_file_arr {
+		println(index, "  ", value)
+		cmd := zipList(value, "jar")
+		fmt.Println(cmd)
+		CmdExecutor(cmd)
+	}
+}
 
-	//println("==========jar_file===========")
-	//for index, value := range jar_file_arr {
-	//	println(index, "  ", value)
-	//	cmd := zipList(value, "jar")
-	//	fmt.Println(cmd)
-	//	CmdExecutor(cmd)
-	//}
+func warAction()  {
+	println("==========war_file===========")
+	for index, value := range war_file_arr {
+		println(index, "   ", value)
+		cmd := zipList(value, "war")
+		fmt.Println(cmd)
+		CmdExecutor(cmd)
 
+	}
+}
 
-
+func pomAction()  {
 	fmt.Println("==========pom_file===========")
 	for index, value := range pom_file_arr {
 		fmt.Println(index, "  ", value)
@@ -93,8 +188,12 @@ func main() {
 		fmt.Println(cmd)
 		CmdExecutor(cmd)
 	}
-
 }
+
+
+
+
+
 
 // 遍历的文件夹
 func findDir(dir string, num int) () {
@@ -191,9 +290,9 @@ func pasePomFile(filePath string) (cmd *exec.Cmd) {
 		"-Dversion="+version,
 		"-Dpackaging=pom",
 		"-Dfile="+filePath,
-		"-Durl="+urlR,
+		"-Durl="+url,
 		"-DpomFile="+filePath[0 : len(filePath)-3]+"pom",
-		"-DrepositoryId="+repositoryIdR)
+		"-DrepositoryId="+repositoryId)
 	return
 }
 
