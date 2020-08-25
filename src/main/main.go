@@ -134,10 +134,7 @@ func initProperties() {
 }
 
 func main() {
-	//要遍历的文件夹
-
-	//遍历的文件夹
-	//参数：要遍历的文件夹，层级（默认：0）
+	log.Println("application start ...")
 	findDir(targetDir, 0)
 	if second_cmd == "jar" {
 		jarAction()
@@ -145,10 +142,15 @@ func main() {
 		warAction()
 	} else if second_cmd == "pom" {
 		pomAction()
+	} else if second_cmd == "all" {
+		log.Println("上传所有的pom|war|jar包")
+		jarAction()
+		warAction()
+		pomAction()
 	} else {
 		log.Fatalln("不能识别的文件类型")
 	}
-	log.Println("程序执行完毕自动退出...")
+	log.Println("application exit ...")
 }
 
 func jarAction() {
