@@ -31,42 +31,38 @@ type MvnDeploy struct {
 	repoLocal, artifactId, version, groupId, packaging, file, url, repositoryId string
 }
 
-
-
-
-
-
 type PomDoc struct {
-	XMLName     xml.Name `xml:"project"`
-	GroupId     string  `xml:"groupId"`
-	ArtifactId 	string `xml:"artifactId"`
-	Version 	string `xml:"version"`
-	Parent		ParentDom `xml:"parent"`
+	XMLName    xml.Name  `xml:"project"`
+	GroupId    string    `xml:"groupId"`
+	ArtifactId string    `xml:"artifactId"`
+	Version    string    `xml:"version"`
+	Parent     ParentDom `xml:"parent"`
 }
 
 type ParentDom struct {
-	XMLName     xml.Name `xml:"parent"`
-	GroupId     string  `xml:"groupId"`
-	Version 	string `xml:"version"`
+	XMLName xml.Name `xml:"parent"`
+	GroupId string   `xml:"groupId"`
+	Version string   `xml:"version"`
 }
 
 // 创建一个数组
-var war_file_arr, jar_file_arr,pom_file_arr = make([]string, 0), make([]string, 0),make([]string, 0)
+var war_file_arr, jar_file_arr, pom_file_arr = make([]string, 0), make([]string, 0), make([]string, 0)
 
-var   url ="http://172.19.9.94:10000/repository/maven-snapshots/"
+var url = "http://172.19.9.94:10000/repository/maven-snapshots/"
+
 //var   urlR = "http://172.19.9.94:10000/repository/maven-releases/"
-var  repoLocal = "/Users/mac/Desktop/resp"
-var  repositoryId = "nexus-snapshots"
+var repoLocal = "/Users/mac/Desktop/resp"
+var repositoryId = "nexus-snapshots"
+
 //var  repositoryIdR = "nexus-releases"
-var  settingConfigPath = "/Applications/apache-maven-3.3.9/conf/xxx.xml"
+var settingConfigPath = "/Applications/apache-maven-3.3.9/conf/xxx.xml"
 var targetDir = ""
 var pomVersion = ""
 
 var conf = "conf.properties"
 var second_cmd = ""
 
-
-func  init()  {
+func init() {
 	initProperties()
 	// 解析配置文件
 	parsing_conf()
@@ -74,8 +70,8 @@ func  init()  {
 
 /**
 解析配置文件
- */
-func parsing_conf()  {
+*/
+func parsing_conf() {
 	f, err := os.Open(conf)
 	if err != nil {
 		log.Fatalln(err)
@@ -85,62 +81,57 @@ func parsing_conf()  {
 	// 创建map
 	prop := make(map[string]string)
 
-	br :=bufio.NewReader(f)
+	br := bufio.NewReader(f)
 	for {
 		a, _, c := br.ReadLine()
 		if c == io.EOF {
 			break
 		}
-		line :=string(a)
+		line := string(a)
 
-		line_arr :=strings.Split(line,"=")
-		prop[strings.Trim(line_arr[0]," ")]=strings.Trim(line_arr[1]," ")
+		line_arr := strings.Split(line, "=")
+		prop[strings.Trim(line_arr[0], " ")] = strings.Trim(line_arr[1], " ")
 	}
 
 	// 给参数赋值
 	assignment(prop)
 
-
 }
 
-
 /**
- 为全局变量赋值
- */
+为全局变量赋值
+*/
 func assignment(prop map[string]string) {
 	log.Println(prop)
-	url=prop["url"]
+	url = prop["url"]
 	repositoryId = prop["repositoryId"]
-	if  pomVersion=="releases" {
-		url=prop["urlR"]
+	if pomVersion == "releases" {
+		url = prop["urlR"]
 		repositoryId = prop["repositoryIdR"]
 	}
 
 	repoLocal = prop["repoLocal"]
-	settingConfigPath=prop["settingConfigPath"]
-	targetDir=prop["targetDir"]
+	settingConfigPath = prop["settingConfigPath"]
+	targetDir = prop["targetDir"]
 }
 
-
 /**
-	初始化配置文件
- */
-func initProperties(){
-	if len(os.Args) <=1 {
+初始化配置文件
+*/
+func initProperties() {
+	if len(os.Args) <= 1 {
 		log.Fatal("请输入子命令: pom|jar|war|version|help")
 	}
 
-	flag.StringVar(&conf,"c","127.0.0.1","请指定配置文件的地址")
-	flag.StringVar(&pomVersion,"v","snapshots","请输入包的版本")
+	flag.StringVar(&conf, "c", "127.0.0.1", "请指定配置文件的地址")
+	flag.StringVar(&pomVersion, "v", "snapshots", "请输入包的版本")
 
 	flag.CommandLine.Parse(os.Args[2:])
 
 	second_cmd = os.Args[1]
 
-	log.Println("配置文件地址>>"+conf)
+	log.Println("配置文件地址>>" + conf)
 }
-
-
 
 func main() {
 	//要遍历的文件夹
@@ -157,9 +148,10 @@ func main() {
 	} else {
 		log.Fatalln("不能识别的文件类型")
 	}
+	log.Println("程序执行完毕自动退出...")
 }
 
-func jarAction(){
+func jarAction() {
 	println("==========jar_file===========")
 	for index, value := range jar_file_arr {
 		println(index, "  ", value)
@@ -169,7 +161,7 @@ func jarAction(){
 	}
 }
 
-func warAction()  {
+func warAction() {
 	println("==========war_file===========")
 	for index, value := range war_file_arr {
 		println(index, "   ", value)
@@ -180,23 +172,20 @@ func warAction()  {
 	}
 }
 
-func pomAction()  {
+func pomAction() {
 	fmt.Println("==========pom_file===========")
 	for index, value := range pom_file_arr {
 		fmt.Println(index, "  ", value)
-		cmd:= pasePomFile(value)
+		cmd := pasePomFile(value)
 		fmt.Println(cmd)
 		CmdExecutor(cmd)
 	}
 }
 
-
-
-
-
-
-// 遍历的文件夹
-func findDir(dir string, num int) () {
+/**
+****************************** 遍历目录扫描所有的pom jar war *************************
+ */
+func findDir(dir string, num int) {
 	fileinfo, err := ioutil.ReadDir(dir)
 	if err != nil {
 		panic(err)
@@ -217,8 +206,12 @@ func findDir(dir string, num int) () {
 			if strings.HasSuffix(fi.Name(), ".war") {
 				war_file_arr = append(war_file_arr, dir+string(os.PathSeparator)+fi.Name())
 			} else if strings.HasSuffix(fi.Name(), ".jar") {
+				if strings.HasSuffix(fi.Name(), "-sources.jar") {
+					log.Println(fi.Name() + " >>>是源码包自动排除掉")
+					continue
+				}
 				jar_file_arr = append(jar_file_arr, dir+string(os.PathSeparator)+fi.Name())
-			}else if strings.HasSuffix(fi.Name(),".pom") {
+			} else if strings.HasSuffix(fi.Name(), ".pom") {
 				pom_file_arr = append(pom_file_arr, dir+string(os.PathSeparator)+fi.Name())
 			}
 		}
@@ -242,7 +235,7 @@ mvn -s /Applications/apache-maven-3.3.9/conf/settings_sh_sunline.xml \
 -DpomFile=flowplus-parent-1.0.0.RELEASE.pom \
 -DrepositoryId=nexus-releases
 
- */
+*/
 func pasePomFile(filePath string) (cmd *exec.Cmd) {
 	//解析xml拿到 artifactId version groupId
 	file, err := os.Open(filePath) // For read access.
@@ -265,38 +258,36 @@ func pasePomFile(filePath string) (cmd *exec.Cmd) {
 		return
 	}
 
-	version:=v.Version
-	groupId:=v.GroupId
-	artifactId:=v.ArtifactId
+	version := v.Version
+	groupId := v.GroupId
+	artifactId := v.ArtifactId
 
-	if len(version)==0  {
-		version=v.Parent.Version
+	if len(version) == 0 {
+		version = v.Parent.Version
 	}
-	if len(groupId)==0 {
-		groupId= v.Parent.GroupId
+	if len(groupId) == 0 {
+		groupId = v.Parent.GroupId
 	}
 
 	//fmt.Println("groupId>>>"+groupId)
 	//fmt.Println("artifactId>>>"+artifactId)
 	//fmt.Println("version>>>"+version)
 
-	cmd=exec.Command("mvn",
-		"-s",				settingConfigPath,
-		"-Dmaven.repo.local="+repoLocal		,
+	cmd = exec.Command("mvn",
+		"-s", settingConfigPath,
+		"-Dmaven.repo.local="+repoLocal,
 		"-DskipTests=true",
 		"deploy:deploy-file",
-		"-DgroupId="+groupId	,
+		"-DgroupId="+groupId,
 		"-DartifactId="+artifactId,
 		"-Dversion="+version,
 		"-Dpackaging=pom",
 		"-Dfile="+filePath,
 		"-Durl="+url,
-		"-DpomFile="+filePath[0 : len(filePath)-3]+"pom",
+		"-DpomFile="+filePath[0:len(filePath)-3]+"pom",
 		"-DrepositoryId="+repositoryId)
 	return
 }
-
-
 
 /**
 获取zip 文件列表中pom.properties
@@ -332,18 +323,18 @@ func zipList(filePath string, packaging string) (cmd *exec.Cmd) {
 		}
 	}
 	//封装成commond 对象
-	cmd=exec.Command("mvn",
-		"-s",				settingConfigPath,
-		"-Dmaven.repo.local="+repoLocal		,
+	cmd = exec.Command("mvn",
+		"-s", settingConfigPath,
+		"-Dmaven.repo.local="+repoLocal,
 		"-DskipTests=true",
 		"deploy:deploy-file",
-		"-DgroupId="+m["groupId"]	,
+		"-DgroupId="+m["groupId"],
 		"-DartifactId="+m["artifactId"],
 		"-Dversion="+m["version"],
 		"-Dpackaging="+packaging,
 		"-Dfile="+filePath,
 		"-Durl="+url,
-		"-DpomFile="+filePath[0 : len(filePath)-3]+"pom",
+		"-DpomFile="+filePath[0:len(filePath)-3]+"pom",
 		"-DrepositoryId="+repositoryId)
 	return
 }
@@ -363,19 +354,18 @@ func zipList(filePath string, packaging string) (cmd *exec.Cmd) {
 		-DrepositoryId=nexus-snapshots
 */
 
-
 // 命令执行者
-func CmdExecutor(cmd *exec.Cmd){
+func CmdExecutor(cmd *exec.Cmd) {
 	stdout, err := cmd.StdoutPipe()
 	//获取输出对象，可以从该对象中读取输出结果
-	if  err != nil {
+	if err != nil {
 		log.Fatal(err)
 	}
 	defer stdout.Close()
-	if err := cmd.Start(); err != nil {   // 运行命令
+	if err := cmd.Start(); err != nil { // 运行命令
 		log.Fatal(err)
 	}
-	if opBytes, err := ioutil.ReadAll(stdout); err != nil {  // 读取输出结果
+	if opBytes, err := ioutil.ReadAll(stdout); err != nil { // 读取输出结果
 		log.Fatal(err)
 	} else {
 		log.Println(string(opBytes))
